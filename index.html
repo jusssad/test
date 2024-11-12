@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кликер для Telegram</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0/dist/supabase.min.js"></script>
+</head>
+<body>
+  <h1>Телеграмм Кликер</h1>
+  <button id="clickButton">Кликни!</button>
+  <p id="message">Твои клики: 0</p>
+
+  <script>
+    const supabaseUrl = 'https://zbjmaqliacbivuqfarsi.supabase.co'; 
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpiam1hcWxpYWNiaXZ1cWZhcnNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEzODAxMTAsImV4cCI6MjA0Njk1NjExMH0.T2JtJ0rP9o2VKXwgif685lAyDgjZdRLRiTTVe-Sz39U';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const userId = Telegram.WebApp.initDataUnsafe.user.id; // Здесь будет уникальный ID пользователя из Telegram API
+
+    // Функция для получения количества кликов
+    async function getClicks() {
+      const { data, error } = await supabase
+        .from('clicks') // Имя вашей таблицы
+        .select('count')
+        .eq('user_id', userId)
+        .single(); // Получаем только одну запись
+
+      if (error && error.code === 'PGRST116') {
+        // Если данных нет, создаем их
+        await supabase.from('clicks').insert([{ user_id: userId, count: 1, created_at: new Date().toISOString() }]);
+        document.getElementById('message').textContent = 'Твои клики: 1';
+      } else if (data) {
+        // Если данные есть, показываем их
+        document.getElementById('message').textContent = `Твои клики: ${data.count}`;
+      }
+    }
+
+    // Функция для обновления количества кликов
+    async function updateClicks() {
+      const { data, error } = await supabase
+        .from('clicks') // Имя вашей таблицы
+        .select('count')
+        .eq('user_id', userId)
+        .single(); // Получаем только одну запись
+
+      if (data) {
+        const newCount = data.count + 1;
+        await supabase.from('clicks').update({ count: newCount, created_at: new Date().toISOString() }).eq('user_id', userId);
+        document.getElementById('message').textContent = `Твои клики: ${newCount}`;
+      }
+    }
+
+    // При загрузке страницы получаем количество кликов
+    getClicks();
+
+    // Обработчик события нажатия на кнопку
+    document.getElementById('clickButton').addEventListener('click', updateClicks);
+  </script>
+</body>
+</html>
